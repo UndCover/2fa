@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>2FA</title>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	</head>
+	<body>
+		<script src=".\assets\js\jquery-3.4.1.min.js"></script>
+		<script src=".\assets\js\otpauth.umd.min.js"></script>
+		<style>
+			* { word-break: break-all;}
+			.pb-sm-2,.py-sm-2 { padding-bottom: 0px !important;}
+			.input-2fa { background-color: #F7F9FA; border: 0px; border-radius: 0.55rem; box-shadow: none; color: #5E6E80; padding: 0.875rem 1.375rem 0.8125rem; outline: none !important; position: relative; width: 100%; box-shadow: inset 0px 0px 1px 1px rgb(50 174 77); font-size: 0.88rem; font-weight: 600;}
+			.btn-get:hover,.btn-qr:hover { background: none; color: #000; box-shadow: inset 0px 0px 1px 1px rgb(50 174 77);}
+			.input-2fa:focus { box-shadow: inset 0px 0px 2px 2px rgb(50 174 77); background: white;}
+			.div-2fa { margin-bottom: 0.65rem; font-size: 0.88rem;}
+			.div-2fa>span { margin-left: 0.55rem; font-weight: 600;}
+			.message-class { font-weight: 300 !important;}
+			.btn-get { background-image: linear-gradient(142.17deg, #009688 6.66%, #00d708de 91.48%); box-shadow: inset -0.25rem -0.25rem 0.3125rem rgba(0, 0, 0, 0.1), inset 0.25rem 0.25rem 0.3125rem rgba(255, 255, 255, 0.23); border-radius: 0.35rem; border: 0; color: #fff; cursor: pointer; font-size: 1rem; font-weight: 600; padding: 0.23rem 0.86rem;}
+		</style>
+		<div class="container gutter-top 2fatool">
+			<div class="row sticky-parent">
+				<div class="col-12 col-md-12 col-lg-10">
+					<div class="box box-content">
+						<div class="class-2fa">
+							<div class="div-2fa"><input id="secret-input-js" class="input-2fa" type="text"
+									placeholder="点击此处输入密钥" autocomplete="on"></div>
+							<div class="div-2fa"><button id="btn-js" class="btn-get">点击获取验证码</button></div>
+							<div class="div-2fa" id="key-output-js">双重密钥为: <span id="key_js"></span></div>
+							<div class="div-2fa" id="code-output-js">当前验证码: <span id="code_js"></span></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			$("#btn-js").on("click", function() {
+				var key2fa = $('#secret-input-js').val()
+				$("#key_js").text(key2fa);				
+				let totp = new OTPAuth.TOTP({
+					algorithm: "SHA1",
+					digits: 6,
+					period: 30,
+					secret: key2fa,
+				});
+				let token = totp.generate();
+				$("#code_js").text(token);
+			});
+		</script>
+	</body>
+</html>
