@@ -12,43 +12,173 @@
 		<script src=".\assets\js\otpauth.umd.min.js"></script>
 		<style>
 			* { word-break: break-all;}
+			.title-2fa { position: relative; color: #3B4B5E; font-size: 2rem; font-family: "Poppins", sans-serif; font-weight: 600;}
 			.pb-sm-2,.py-sm-2 { padding-bottom: 0px !important;}
-			.input-2fa { background-color: #F7F9FA; border: 0px; border-radius: 0.55rem; box-shadow: none; color: #5E6E80; padding: 0.875rem 1.375rem 0.8125rem; outline: none !important; position: relative; width: 100%; box-shadow: inset 0px 0px 1px 1px rgb(50 174 77); font-size: 0.88rem; font-weight: 600;}
+			.input-2fa { background-color: #F7F9FA; border: 0px; border-radius: 0.55rem; box-shadow: none; color: #5E6E80; padding: 0.875rem 1.5% 0.8125rem; outline: none !important; position: relative; width: 97%; box-shadow: inset 0px 0px 1px 1px rgb(50 174 77); font-size: 0.88rem; font-weight: 600;}
 			.btn-get:hover,.btn-qr:hover { background: none; color: #000; box-shadow: inset 0px 0px 1px 1px rgb(50 174 77);}
 			.input-2fa:focus { box-shadow: inset 0px 0px 2px 2px rgb(50 174 77); background: white;}
 			.div-2fa { margin-bottom: 0.65rem; font-size: 0.88rem;}
 			.div-2fa>span { margin-left: 0.55rem; font-weight: 600;}
 			.message-class { font-weight: 300 !important;}
 			.btn-get { background-image: linear-gradient(142.17deg, #009688 6.66%, #00d708de 91.48%); box-shadow: inset -0.25rem -0.25rem 0.3125rem rgba(0, 0, 0, 0.1), inset 0.25rem 0.25rem 0.3125rem rgba(255, 255, 255, 0.23); border-radius: 0.35rem; border: 0; color: #fff; cursor: pointer; font-size: 1rem; font-weight: 600; padding: 0.23rem 0.86rem;}
+			#notification-container { position: fixed; top: 20px; right: 20px; z-index: 9999;}
+			.notification { background-color: #030303bf; color: #fff; padding: 15px; border-radius: 4px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); opacity: 0; transform: translateX(100%); transition: opacity 0.5s, transform 0.5s;}
+			.notification.show { opacity: 1; transform: translateX(0);}
 		</style>
 		<div class="container gutter-top 2fatool">
 			<div class="row sticky-parent">
 				<div class="col-12 col-md-12 col-lg-10">
 					<div class="box box-content">
 						<div class="class-2fa">
-							<div class="div-2fa"><input id="secret-input-js" class="input-2fa" type="text"
-									placeholder="点击此处输入密钥" autocomplete="on"></div>
+							<h1 class="title-2fa">2fa tools</h1>
+							<div class="div-2fa"><input id="secret-input-js" class="input-2fa" type="text" placeholder="点击此处输入密钥" autocomplete="on"></div>
 							<div class="div-2fa"><button id="btn-js" class="btn-get">点击获取验证码</button></div>
 							<div class="div-2fa" id="key-output-js">双重密钥为: <span id="key_js"></span></div>
 							<div class="div-2fa" id="code-output-js">当前验证码: <span id="code_js"></span></div>
+							<div class="div-2fa">剩余的时间: <span id="timer">30</span> 秒</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+		<div id="notification-container"></div>
 		<script>
+			let key01, key02, key01val, key02val;
+			let localkey = window.localStorage;
+			let refreshCount = 0;
+			const MAX_REFRESH_COUNT = 3;
+			$(document).ready(function() {
+				startTimer();
+				$("#secret-input-js").val(localkey.getItem("key01"));
+			});
+
 			$("#btn-js").on("click", function() {
-				var key2fa = $('#secret-input-js').val()
-				$("#key_js").text(key2fa);				
-				let totp = new OTPAuth.TOTP({
-					algorithm: "SHA1",
+				let secret = $('#secret-input-js').val();
+				secret = filterAndValidateSecret(secret);
+				if (!secret) return;
+				getCodeJS();
+				copyToClipboard("code_js");
+				refreshCount = 0;
+			});
+			$("#code_js").on("click", function() {
+				copyToClipboard("code_js");
+			});
+			$("#key_js").on("click", function() {
+				copyToClipboard("key_js");
+			});
+			function filterAndValidateSecret(rawSecret) {
+				if (rawSecret == "" || rawSecret == null) {
+					return null;
+				}
+				let secret = rawSecret.replace(/\s+/g, '');
+				let pattern = /^[A-Z2-7]+$/;
+				secret = secret.toUpperCase();
+				if (secret.length < 16) {
+					showNotification("密钥太短，请重新输入。");
+					return null;
+				}
+				if (secret.length > 64) {
+					showNotification("密钥过长，请重新输入。");
+					return null;
+				}
+				if (!pattern.test(secret)) {
+					showNotification("非正确编码的密钥，请重新输入。");
+					return null;
+				}
+				return secret;
+			}
+			function getCodeJS() {
+				let secret = $('#secret-input-js').val();
+				secret = filterAndValidateSecret(secret);
+				if (!secret) return;
+				const totp = new OTPAuth.TOTP({
+					algorithm: 'SHA1',
 					digits: 6,
 					period: 30,
-					secret: key2fa,
+					secret: OTPAuth.Secret.fromBase32(secret)
 				});
-				let token = totp.generate();
-				$("#code_js").text(token);
-			});
+				const code = totp.generate();
+				$("#key_js").text(secret);
+				$("#code_js").text(code);
+				$("#code_js").css("color", "rgb(50 174 77)");
+				localStorage.setItem("key01", secret);
+				showNotification("已成功获取验证码哦~");
+			}
+			function showNotification(message) {
+				const container = document.getElementById('notification-container');
+				const notification = document.createElement('div');
+				notification.className = 'notification';
+				notification.textContent = message;
+				container.appendChild(notification);
+				void notification.offsetWidth;
+				notification.classList.add('show');
+				setTimeout(() => {
+					notification.remove();
+				}, 3000);
+			}
+			function copyToClipboard(elementId) {
+				const input = document.createElement('input');
+				input.value = document.getElementById(elementId).textContent;
+				document.body.appendChild(input);
+				input.select();
+				const successful = document.execCommand('copy');
+				document.body.removeChild(input);
+				if (successful) {
+					showNotification("已成功复制");
+				} else {
+					showNotification("无法自动复制，请点击按钮获取。");
+				}
+			}
+			function startTimer() {
+				let currentSecond = new Date().getSeconds();
+				let secondsLeft = 30 - (currentSecond % 30);
+				updateTimerDisplay(secondsLeft);
+				setInterval(() => {
+					secondsLeft--;
+					updateTimerDisplay(secondsLeft);
+					if (secondsLeft == 0) {
+						secondsLeft = 30;
+						let inputJsVal = $("#secret-input-js").val();
+						let inputPhpVal = $("#secret-input").val();
+						let secret1 = filterAndValidateSecret(inputJsVal);
+						let secret2 = filterAndValidateSecret(inputPhpVal);
+						if (refreshCount < MAX_REFRESH_COUNT) {
+							if (secret1) {
+								getCodeJS();
+							} else {
+								$("#key_js").text("");
+								$("#code_js").text("");
+							}
+
+							if (secret2) {
+								getCode();
+							} else {
+								$("#key").text("");
+								$("#code").text("");
+							}
+							if (secret1 || secret2) {
+								refreshCount++;
+							}
+						} else {
+							if (secret1) {
+								$("#code_js").text("已超时，需要重新点击按钮获取！");
+								$("#code_js").css("color", "red");
+							}
+							if (secret2) {
+								$("#code").text("已超时，需要重新点击按钮获取！");
+								$("#code").css("color", "red");
+							}
+						}
+					}
+				}, 1000);
+			}
+			function updateTimerDisplay(secondsLeft) {
+				var showSec = secondsLeft;
+				if(secondsLeft < 10)
+					showSec = '0'+secondsLeft;
+				$("#timer").text(showSec);
+				$("#timer_js").text(showSec);
+			}
 		</script>
 	</body>
 </html>
