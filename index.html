@@ -22,7 +22,7 @@
 			.message-class { font-weight: 300 !important;}
 			.btn-get { background-image: linear-gradient(142.17deg, #009688 6.66%, #00d708de 91.48%); box-shadow: inset -0.25rem -0.25rem 0.3125rem rgba(0, 0, 0, 0.1), inset 0.25rem 0.25rem 0.3125rem rgba(255, 255, 255, 0.23); border-radius: 0.35rem; border: 0; color: #fff; cursor: pointer; font-size: 1rem; font-weight: 600; padding: 0.23rem 0.86rem;}
 			#notification-container { position: fixed; top: 20px; right: 20px; z-index: 9999;}
-			.notification { background-color: #030303bf; color: #fff; padding: 15px; border-radius: 4px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); opacity: 0; transform: translateX(100%); transition: opacity 0.5s, transform 0.5s;}
+			.notification { background-color: #030303bf; color: #008888; padding: 15px; border-radius: 4px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); opacity: 0; transform: translateX(100%); transition: opacity 0.5s, transform 0.5s;}
 			.notification.show { opacity: 1; transform: translateX(0);}
 		</style>
 		<div class="container gutter-top 2fatool">
@@ -43,6 +43,7 @@
 		</div>
 		<div id="notification-container"></div>
 		<script>
+			//code from https://2fa.run/
 			let key01, key02, key01val, key02val;
 			let localkey = window.localStorage;
 			let refreshCount = 0;
